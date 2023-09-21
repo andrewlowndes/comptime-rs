@@ -9,15 +9,13 @@
 //! ### Example
 //!
 //! ``` compile_fail
-//! fn main() {
-//!     println!(concat!(
-//!         "The program was compiled on ",
-//!         comptime::comptime! {
-//!             chrono::Utc::now().format("%Y-%m-%d").to_string()
-//!         },
-//!         "."
-//!     )); // The program was compiled on 2019-08-30.
-//! }
+//! println!(concat!(
+//!     "The program was compiled on ",
+//!     comptime::comptime! {
+//!         chrono::Utc::now().format("%Y-%m-%d").to_string()
+//!     },
+//!     "."
+//! )); // The program was compiled on 2019-08-30.
 //! ```
 //!
 //! ### Limitations
@@ -102,7 +100,7 @@ pub fn comptime(input: TokenStream) -> TokenStream {
         format!(
             r#"fn main() {{
                     let comptime_output = {{ {} }};
-                    print!("{{}}", quote::quote!(#comptime_output));
+                    print!("{{}}", comptime_output);
                 }}"#,
             comptime_program_str
         ),
@@ -116,7 +114,7 @@ pub fn comptime(input: TokenStream) -> TokenStream {
     rustc_args.push("--crate-type".to_string());
     rustc_args.push("bin".to_string());
     rustc_args.push("--emit=dep-info,link".to_string());
-    rustc_args.append(&mut merge_externs(&out_dir, &args));
+    rustc_args.append(&mut merge_externs(out_dir, &args));
     rustc_args.push(comptime_rs.to_str().unwrap().to_string());
 
     let compile_output = Command::new("rustc")
@@ -152,19 +150,19 @@ pub fn comptime(input: TokenStream) -> TokenStream {
         Ok(output) => output,
         Err(_) => err!("comptime expr output was not utf8"),
     };
-    let comptime_expr: syn::Expr = match syn::parse_str(&comptime_expr_str) {
-        Ok(expr) => expr,
+    let comptime_tokens = match syn::parse_str::<BlockInner>(&comptime_expr_str) {
+        Ok(expr) => expr.to_token_stream(),
         Err(_) => syn::ExprLit {
             attrs: Vec::new(),
             lit: syn::LitStr::new(&comptime_expr_str, proc_macro2::Span::call_site()).into(),
         }
-        .into(),
+        .to_token_stream(),
     };
 
     std::fs::remove_file(comptime_rs).ok();
     std::fs::remove_file(comptime_bin).ok();
 
-    TokenStream::from(comptime_expr.to_token_stream())
+    TokenStream::from(comptime_tokens)
 }
 
 /// Returns the rustc args needed to build the comptime executable.
@@ -227,7 +225,7 @@ fn merge_externs(deps_dir: &Path, args: &[String]) -> Vec<String> {
         if !fname.ends_with(".rlib") {
             continue;
         }
-        let lib_name = fname.rsplitn(2, '-').nth(1).unwrap().to_string();
+        let lib_name = fname.rsplit_once('-').unwrap().0.to_string();
         // ^ reverse "libfoo-disambiguator" then split off the disambiguator
         if let Entry::Vacant(ve) = cargo_rlibs.entry(lib_name) {
             ve.insert(path);

@@ -1,10 +1,8 @@
-
 fn main() {
-    println!(concat!(
-        "The program was compiled on ",
+    println!(
+        "The following is ran at compile time: {}",
         comptime::comptime! {
-            chrono::Utc::now().format("%Y-%m-%d").to_string()
+            vec![1,2,3].iter().sum::<u32>()
         },
-        "."
-    ));
+    );
 }

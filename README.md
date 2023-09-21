@@ -1,3 +1,8 @@
+# Comptime-rs
+---
+Fork of comptime-rs with modifications to allow arbitary blocks of Rust code to execute
+---
+
 Lightweight compile-time expression evaluation.
 This crate is inspired by [Zig's `comptime`](https://ziglang.org/documentation/master/#comptime).
 
