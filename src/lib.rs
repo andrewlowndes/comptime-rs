@@ -178,7 +178,7 @@ fn filter_rustc_args(args: &[String]) -> Vec<String> {
             skip = true;
         } else if arg.ends_with(".rs")
             || arg == "--test"
-            || arg == "rustc"
+            || arg.ends_with("rustc")
             || arg.starts_with("--emit")
         {
             continue;
